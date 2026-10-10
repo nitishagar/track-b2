@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>otps — Timing-Correlation Diff Engine</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html" aria-current="page">Home</a>
+    <a href="format.html">Format</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="adopters.html">Adopters</a>
+    <a href="roadmap.html">Roadmap</a>
+  </nav>
+</header>
+<main>
+<h1>Explain why timing slack changed between two chip-design runs.</h1>
+<p>Pre- vs post-route, corner A vs B, flow v1 vs ported v2 — <code>otps</code>
+aligns the "same" timing paths across two reports and attributes the slack
+delta stage by stage, in seconds, offline. See <a href="format.html">the OTPS
+format spec</a> and <a href="architecture.html">how the pipeline works</a>.</p>
+
+<h2>Quickstart</h2>
+<pre>cargo build --locked
+cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --corner sky130hd
+cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --fail-on-regression-ps 50</pre>
+<p>The first command builds the workspace. The second diffs the synthetic
+pre/post-route fixture pair (plain text or <code>.gz</code> accepted). The third
+is the CI gate: it exits <code>2</code> if any matched path regresses more than
+50&nbsp;ps. Full flag reference is on the <a href="adopters.html">adopters
+page</a>; machine-readable output via <code>--format json</code>.</p>
+
+<h2>Sample output</h2>
+<pre>otps diff (schema 0.1.0)
+base: 6 paths  new: 7 paths  matched: 6 (unmatched base 0, new 1)
+match rate: 85.7%
+worst slack delta: -0.102 ns
+worst residual: 0.000000 ns
+top regressions:
+  -0.102 ns  NetDelay  u_core/ff1 -&gt; u_core/ff2  (explained 100%)
+  ...
+clusters:
+  NetDelay x3 [u_core]: total -0.202 ns
+  ...</pre>
+<p>Every report prints its match rate and unexplained residual: a large
+residual means "uncertain", never "clean". Up to 5 worst regressions and the
+cluster roll-up (dominant component + hierarchy prefix) are shown.</p>
+
+<h2>Ground rules</h2>
+<ul>
+  <li><strong>No telemetry. No network.</strong> The CLI makes zero network
+  calls; <code>--offline</code> is the only mode.</li>
+  <li><strong>Apache-2.0.</strong> Free to use, modify, and redistribute.</li>
+  <li><strong>Not a signoff tool.</strong> This is signoff-adjacent triage:
+  it narrows 2,000 miscorrelated endpoints to a handful of root causes, but
+  it never certifies timing.</li>
+</ul>
+<div class="notice"><strong>Legal guardrail:</strong> public fixtures and demos
+use only OpenSTA/OpenROAD-style data. This project never links OpenSTA
+(GPL-3.0) and never publishes commercial-tool outputs or tool-vs-tool
+comparisons. Details on the <a href="adopters.html">adopters page</a>.</div>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+</body>
+</html>

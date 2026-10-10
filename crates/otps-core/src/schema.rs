@@ -118,6 +118,41 @@ impl TimingPath {
     #[must_use]
     pub fn validate(&self, tol_ns: f64) -> Vec<String> {
         let mut problems = Vec::new();
+        for (name, value) in [
+            ("slack", self.slack),
+            ("required", self.required),
+            ("arrival", self.arrival),
+            ("crpr", self.crpr),
+            ("uncertainty", self.uncertainty),
+        ] {
+            if !value.is_finite() {
+                problems.push(format!("non-finite {name}"));
+            }
+        }
+        for point in &self.points {
+            for (name, value) in [
+                ("cell_delay", point.cell_delay),
+                ("net_delay", point.net_delay),
+                ("slew", point.slew),
+                ("cap", point.cap),
+            ] {
+                if !value.is_finite() {
+                    problems.push(format!("non-finite {name} on {}", point.pin));
+                }
+            }
+            for (name, value) in [
+                ("derate", point.derate),
+                ("sigma", point.sigma),
+                ("si_delta", point.si_delta),
+            ] {
+                if value.is_some_and(|v| !v.is_finite()) {
+                    problems.push(format!("non-finite {name} on {}", point.pin));
+                }
+            }
+        }
+        if !problems.is_empty() {
+            return problems;
+        }
         let arrival_err = (self.data_arrival() - self.arrival).abs();
         if arrival_err > tol_ns {
             problems.push(format!(
@@ -154,5 +189,54 @@ impl TimingReport {
             run,
             paths,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn valid_path() -> TimingPath {
+        TimingPath {
+            startpoint: "a".to_owned(),
+            endpoint: "b".to_owned(),
+            launch_clock: "clk".to_owned(),
+            capture_clock: "clk".to_owned(),
+            group: String::new(),
+            check: Check::Setup,
+            slack: 0.1,
+            required: 1.0,
+            arrival: 0.9,
+            crpr: 0.0,
+            uncertainty: 0.0,
+            points: vec![TimingPoint {
+                pin: "p".to_owned(),
+                cell: String::new(),
+                net: String::new(),
+                cell_delay: 0.5,
+                net_delay: 0.4,
+                slew: 0.0,
+                cap: 0.0,
+                fanout: 0,
+                derate: None,
+                sigma: None,
+                si_delta: None,
+            }],
+        }
+    }
+
+    #[test]
+    fn flags_non_finite_values() {
+        for mutate in [
+            |p: &mut TimingPath| p.slack = f64::NAN,
+            |p: &mut TimingPath| p.required = f64::INFINITY,
+            |p: &mut TimingPath| p.points[0].net_delay = f64::NAN,
+            |p: &mut TimingPath| p.points[0].sigma = Some(f64::NEG_INFINITY),
+        ] {
+            let mut path = valid_path();
+            mutate(&mut path);
+            assert!(!path.validate(1e-9).is_empty());
+        }
+        assert!(valid_path().validate(1e-9).is_empty());
     }
 }

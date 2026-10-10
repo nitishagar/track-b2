@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OTPS Text Format v0.1 — otps docs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html">Home</a>
+    <a href="format.html" aria-current="page">Format</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="adopters.html">Adopters</a>
+    <a href="roadmap.html">Roadmap</a>
+  </nav>
+</header>
+<main>
+<h1>OTPS text format v0.1</h1>
+<p>The Open Timing Path Schema (OTPS) text format is an
+<code>OpenSTA report_checks</code> subset mapping: one plain-text report holds
+any number of timing paths. Blank lines and lines starting with
+<code>#</code> are ignored. All delays are in nanoseconds. The CLI reads
+<code>.rpt</code>/<code>.txt</code> directly, plus <code>.gz</code>-compressed
+inputs; <code>.json</code> (or <code>.json.gz</code>) files are parsed as
+in-tool exporter JSON dumps instead (see <a href="architecture.html">parse
+stage</a>).</p>
+
+<h2>Path block</h2>
+<p>Each path is a fixed-order header, a <code>Points:</code> line, one or more
+point lines, and a terminating <code>End</code> line:</p>
+<pre>Startpoint: &lt;start pin/instance&gt;
+Endpoint: &lt;end pin/instance&gt;
+Launch clock: &lt;clock&gt;
+Capture clock: &lt;clock&gt;
+Group: &lt;path group, may be empty&gt;
+Check: setup|max|hold|min
+Slack: &lt;ns&gt;
+Required: &lt;ns&gt;
+Arrival: &lt;ns&gt;
+Crpr: &lt;ns&gt;
+Uncertainty: &lt;ns&gt;
+Points:
+&lt;point line&gt;
+...
+End</pre>
+
+<h2>Point line</h2>
+<p>Point lines use pipe-separated columns followed by space-separated
+<code>key=value</code> attributes:</p>
+<pre>&lt;pin&gt; | &lt;cell type&gt; | &lt;net&gt; | cell=&lt;ns&gt; net=&lt;ns&gt; slew=&lt;ns&gt; cap=&lt;pf&gt; fanout=&lt;int&gt; [derate=&lt;mult&gt;] [sigma=&lt;ns&gt;] [si=&lt;ns&gt;]</pre>
+<table>
+<tr><th>Attribute</th><th>Meaning</th><th>Required?</th></tr>
+<tr><td><code>cell</code></td><td>Cell (gate) incremental delay, ns</td><td>No (default 0)</td></tr>
+<tr><td><code>net</code></td><td>Net (wire) incremental delay, ns</td><td>No (default 0)</td></tr>
+<tr><td><code>slew</code></td><td>Transition slew, ns</td><td>No</td></tr>
+<tr><td><code>cap</code></td><td>Load capacitance</td><td>No</td></tr>
+<tr><td><code>fanout</code></td><td>Fanout count (integer)</td><td>No</td></tr>
+<tr><td><code>derate</code></td><td>Applied derate multiplier</td><td>Optional</td></tr>
+<tr><td><code>sigma</code></td><td>POCV/LVF sigma, ns</td><td>Optional</td></tr>
+<tr><td><code>si</code></td><td>SI-induced delta delay, ns</td><td>Optional</td></tr>
+</table>
+<p>Only the pin column is required; cell/net columns may be empty. Unknown
+attribute keys are a parse error (reported with a 1-based line number).</p>
+
+<h2>Example</h2>
+<pre># Pre-route path on sky130hd (synthetic OpenSTA-style data).
+Startpoint: u_core/ff1
+Endpoint: u_core/ff2
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.100
+Required: 1.000
+Arrival: 0.900
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_core/ff1/CK | DFFHQX1 | net_clk1 | cell=0.050 net=0.010 slew=0.020 cap=0.003 fanout=2
+u_core/ff2/D | DFFHQX1 | net_d1 | cell=0.640 net=0.200 slew=0.040 cap=0.005 fanout=1 derate=1.050
+End</pre>
+
+<h2>Self-consistency invariants</h2>
+<p>Every path must satisfy (within 1e-6&nbsp;ns, checked by <code>diff</code>
+before matching):</p>
+<ul>
+  <li><code>sum(point cell + net increments) == arrival</code></li>
+  <li><code>required - arrival == slack</code></li>
+</ul>
+<p>A violation is reported as an error naming the endpoint — it flags a
+parser or exporter bug, never a timing verdict.</p>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+</body>
+</html>

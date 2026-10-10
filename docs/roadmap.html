@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap — otps docs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html">Home</a>
+    <a href="format.html">Format</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="adopters.html">Adopters</a>
+    <a href="roadmap.html" aria-current="page">Roadmap</a>
+  </nav>
+</header>
+<main>
+<h1>Roadmap</h1>
+<p>Where the project goes after the CLI core. Items are ordered roughly by
+planned sequence; nothing here changes the core promise — deterministic,
+offline, signoff-adjacent triage. For how the current pipeline works, see
+<a href="architecture.html">architecture</a>.</p>
+
+<h2>WASM demo</h2>
+<p>A static GitHub Pages demo that runs the diff engine entirely in the
+browser: drop two OpenSTA reports and get the clustered root-cause view in
+seconds. Files never leave the browser — the same offline guarantee as the
+CLI, packaged for evaluation without installing Rust.</p>
+
+<h2>Exporter scripts</h2>
+<p>User-run, in-tool Tcl exporter scripts for PrimeTime and Tempus: source
+scripts the engineer runs in their own licensed session to dump
+paths/points as JSON Lines (via documented
+<code>get_timing_paths</code>/<code>report_timing</code>-style commands) for
+<code>otps</code> to ingest. Shipped as source with no vendor binaries and no
+vendor sample outputs. Text-report parsers for commercial formats grow later,
+only from contributed, anonymized samples.</p>
+
+<h2>History store</h2>
+<p>Persist diffs across runs for trend analysis: per-run summaries in an
+embeddable store (DuckDB/Parquet, SQLite fallback — no server), multi-corner
+matrices, and trend charts answering "when did this endpoint group start
+drifting, and which component moved first?" Builds on the JSON output and the
+<a href="adopters.html">CI gate</a> already shipped.</p>
+
+<h2>MCP server</h2>
+<p>An optional, off-by-default <code>otps-mcp</code> layer exposing the
+deterministic correlation engine to AI agents and local models (Ollama/vLLM).
+Positioning stays the same: the explainable correlation layer that agents —
+yours or the vendors' — can call, never an AI black box. Local-only, no
+telemetry, consistent with the air-gapped-farm constraint.</p>
+
+<h2>Also under consideration</h2>
+<ul>
+  <li>Self-contained static HTML diff report (one shareable file, no server).</li>
+  <li>SPEF/Liberty-backed "why" drill-down: a library-diff module explaining
+  part of a correlation delta.</li>
+  <li>SDF annotation-coverage check as a plugin.</li>
+  <li>Anonymizer-backed <code>contribute</code> flow for redacted sample
+  sharing.</li>
+</ul>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+</body>
+</html>

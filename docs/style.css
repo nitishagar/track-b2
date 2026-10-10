@@ -1,0 +1,84 @@
+/* otps docs — zero-dependency stylesheet, works offline. */
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #555;
+  --accent: #0b5cad;
+  --border: #ddd;
+  --code-bg: #f0f0f0;
+  --warn-bg: #fff8e6;
+  --warn-border: #d9a400;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+}
+header.site {
+  background: #111;
+  color: #fff;
+  padding: 1rem 1.5rem;
+}
+header.site a.brand {
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 1.2rem;
+}
+nav.site {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin-top: 0.5rem;
+}
+nav.site a { color: #cfe3ff; text-decoration: none; }
+nav.site a:hover { text-decoration: underline; }
+nav.site a[aria-current="page"] { color: #fff; font-weight: 700; }
+main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 3rem;
+}
+h1 { line-height: 1.25; }
+h2 { margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 0.9rem;
+}
+code.inline, p code, li code, td code {
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.92em;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+th, td { border: 1px solid var(--border); padding: 0.5rem 0.7rem; text-align: left; }
+th { background: #eee; }
+.notice {
+  border: 1px solid var(--warn-border);
+  background: var(--warn-bg);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+footer.site {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 1rem 1.5rem 2rem;
+  text-align: center;
+}
+footer.site a { color: var(--accent); }

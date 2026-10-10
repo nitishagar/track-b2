@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::schema::TimingPath;
 
 /// Dominant contributor to a slack delta.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum Component {
     CellDelay,
@@ -47,7 +47,17 @@ pub fn attribute(base: &TimingPath, new: &TimingPath) -> Attribution {
     let required_delta = new.required - base.required;
     let slack_delta = new.slack - base.slack;
     let residual = slack_delta - (required_delta - data_delta);
-    let explained_ratio = 1.0 - residual.abs() / slack_delta.abs().max(1e-12);
+    // Near-zero slack movement has no meaningful ratio denominator: judge the
+    // residual on an absolute scale instead, and always clamp to [0, 1].
+    let explained_ratio = if slack_delta.abs() < 1e-9 {
+        if residual.abs() < 1e-9 {
+            1.0
+        } else {
+            0.0
+        }
+    } else {
+        (1.0 - residual.abs() / slack_delta.abs()).clamp(0.0, 1.0)
+    };
 
     let mut dominant = Component::Balanced;
     let mut best = 1e-12;
@@ -129,12 +139,17 @@ pub fn cluster(attributions: &[Attribution]) -> Vec<Cluster> {
         })
         .collect();
     out.sort_by(|a, b| {
-        b.count.cmp(&a.count).then(
-            b.total_slack_delta
-                .abs()
-                .partial_cmp(&a.total_slack_delta.abs())
-                .unwrap_or(std::cmp::Ordering::Equal),
-        )
+        b.count
+            .cmp(&a.count)
+            .then(
+                b.total_slack_delta
+                    .abs()
+                    .partial_cmp(&a.total_slack_delta.abs())
+                    .unwrap_or(std::cmp::Ordering::Equal),
+            )
+            // Total tiebreak: cluster order must be deterministic across runs.
+            .then(a.dominant.cmp(&b.dominant))
+            .then(a.prefix.cmp(&b.prefix))
     });
     out
 }
@@ -200,6 +215,41 @@ mod tests {
         assert!((attr.slack_delta + 0.1).abs() < 1e-12);
         assert!(attr.residual.abs() < 1e-12);
         assert!(attr.explained_ratio > 0.95);
+    }
+
+    #[test]
+    fn explained_ratio_stays_bounded_near_zero_delta() {
+        // Zero slack movement + sub-tolerance point noise must not explode.
+        let base = path(0.2, 1.0, vec![point("p1", 0.5, 0.3)]);
+        let new = path(0.2, 1.0, vec![point("p1", 0.5, 0.3 + 1e-7)]);
+        let attr = attribute(&base, &new);
+        assert!((0.0..=1.0).contains(&attr.explained_ratio));
+    }
+
+    #[test]
+    fn tied_clusters_order_deterministically() {
+        let mk = |ep: &str, dom: Component| Attribution {
+            startpoint: "s".to_owned(),
+            endpoint: ep.to_owned(),
+            slack_delta: -0.01,
+            cell_delta: 0.0,
+            net_delta: 0.0,
+            data_delta: 0.0,
+            required_delta: 0.0,
+            residual: 0.0,
+            explained_ratio: 1.0,
+            dominant: dom,
+        };
+        // Two clusters tied on count and |total|: order must be stable.
+        let attrs = vec![
+            mk("b/x", Component::Required),
+            mk("a/y", Component::NetDelay),
+        ];
+        let first = cluster(&attrs);
+        for _ in 0..50 {
+            assert_eq!(cluster(&attrs), first);
+        }
+        assert_eq!(first[0].dominant, Component::NetDelay);
     }
 
     #[test]

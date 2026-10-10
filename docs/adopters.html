@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adopters — otps docs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html">Home</a>
+    <a href="format.html">Format</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="adopters.html" aria-current="page">Adopters</a>
+    <a href="roadmap.html">Roadmap</a>
+  </nav>
+</header>
+<main>
+<h1>Who it is for</h1>
+<ul>
+  <li><strong>STA / timing-closure engineers</strong> — "tell me in
+  5 minutes which of these 2,000 miscorrelated endpoints share a root cause,
+  and which component (net delay, clock latency, derate) drives it."</li>
+  <li><strong>PD / CAD leads</strong> — gate flow upgrades in CI: fail if
+  path-level slack regresses beyond X&nbsp;ps on any endpoint group.</li>
+  <li><strong>Flow-porting / methodology engineers</strong> — prove a ported
+  flow correlates with the old one and quantify residuals per stage.</li>
+  <li><strong>OSS-silicon / academic designers</strong> — why did timing
+  change between OpenROAD-flow-scripts versions or PDK revisions?</li>
+</ul>
+<p>It runs anywhere Rust builds, needs no licenses, no network, and no root —
+drop two report files on it. Start with the <a href="index.html">quickstart
+on the home page</a>.</p>
+
+<h2>CI gate recipe</h2>
+<p>Fail the build (exit code <code>2</code>) when any matched path regresses
+more than the budget. <code>--fail-on-regression-ps N</code> trips when the
+worst slack delta is worse than −N&nbsp;ps:</p>
+<pre># Shell / Jenkins / generic CI
+cargo run -q -p otps-cli -- diff base.rpt route.rpt --fail-on-regression-ps 50
+# exit 0 = within budget, exit 2 = regression beyond 50 ps, exit 1 = input error</pre>
+<pre># GitHub Actions
+- name: Timing regression gate
+  run: |
+    cargo run -q -p otps-cli -- diff base.rpt route.rpt \
+      --corner ${{ matrix.corner }} --format json --fail-on-regression-ps 50 | tee diff.json</pre>
+<p>Use <code>--format json</code> for machine-readable output (counts, match
+rate, worst deltas, attributions, clusters) and <code>--corner</code> /
+<code>--mode</code> / <code>--pdk</code> to label the run. Tip: gate on a
+budget your flow genuinely holds (start loose, e.g. 100&nbsp;ps, and tighten
+once the attribution output is trusted), and always read the printed match
+rate and residual before treating a green gate as "clean". Flag details are
+in the <a href="architecture.html">CLI reference</a>.</p>
+
+<h2>EULA guardrails</h2>
+<div class="notice"><strong>Non-negotiable.</strong> These rules protect the
+project and its users from EDA license exposure.</div>
+<ul>
+  <li><strong>OpenSTA-only public data.</strong> Public fixtures, demos, and
+  docs use only OpenSTA/OpenROAD-style data. Never commit reports generated
+  by commercial tools.</li>
+  <li><strong>Never link OpenSTA.</strong> OpenSTA is GPL-3.0; this
+  Apache-2.0 codebase must never link it. Subprocess invocation for local
+  demos only.</li>
+  <li><strong>No commercial comparisons.</strong> Never publish
+  commercial-tool outputs or tool-vs-tool comparisons — vendor EULAs
+  explicitly bar disclosing benchmark/comparison results to third parties.
+  Internal use of the tool by licensed engineers on their own results is a
+  separate, low-risk matter.</li>
+</ul>
+
+<h2>CONTRIBUTING legal note</h2>
+<p>Before contributing samples, fixtures, or exporter scripts:</p>
+<ul>
+  <li>Contribute timing samples from <strong>OpenSTA only</strong>, unless you
+  have your employer's explicit legal sign-off.</li>
+  <li>Even anonymized commercial-tool outputs may count as licensor
+  "results" — when in doubt, do not attach them; describe the shape of the
+  data instead.</li>
+  <li>Exporter scripts must use documented tool commands in your own licensed
+  session, written in your own words — never copy vendor docs or scripts
+  verbatim.</li>
+  <li>All contributions are under the repo's Apache-2.0 license; confirm you
+  have the right (employer clearance, no IP encumbrance) to contribute.</li>
+</ul>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+</body>
+</html>

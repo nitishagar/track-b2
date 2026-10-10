@@ -50,4 +50,11 @@ fn diff_json_parses_and_gate_fails() {
         .output()
         .expect("run otps");
     assert!(passing.status.success());
+
+    // Gate: negative budget is rejected with exit 1, not a false failure.
+    let negative = Command::new(env!("CARGO_BIN_EXE_otps"))
+        .args(["diff", &base, &new, "--fail-on-regression-ps=-5"])
+        .output()
+        .expect("run otps");
+    assert_eq!(negative.status.code(), Some(1));
 }

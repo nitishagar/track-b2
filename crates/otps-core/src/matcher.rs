@@ -65,16 +65,14 @@ fn pin_set(path: &TimingPath) -> HashSet<&str> {
 // Counts here are pin-set sizes (tiny); float conversion cannot lose precision.
 #[allow(clippy::cast_precision_loss)]
 fn jaccard(a: &HashSet<&str>, b: &HashSet<&str>) -> f32 {
-    if a.is_empty() && b.is_empty() {
-        return 1.0;
+    // Empty pin sets carry no identity: unrelated zero-point paths must not
+    // fuzzy-match (exact keys still match identical empty paths).
+    if a.is_empty() || b.is_empty() {
+        return 0.0;
     }
     let inter = a.intersection(b).count() as f32;
     let union = a.union(b).count() as f32;
-    if union == 0.0 {
-        1.0
-    } else {
-        inter / union
-    }
+    inter / union
 }
 
 /// Match `new` paths against `base` paths.
@@ -225,6 +223,18 @@ mod tests {
         let r = match_paths(&base, &new);
         assert_eq!(r.matches.len(), 1);
         assert!(matches!(r.matches[0].kind, MatchKind::Fuzzy { .. }));
+    }
+
+    #[test]
+    fn zero_point_paths_do_not_fuzzy_match() {
+        let base = vec![path("a", "b", &[])];
+        let new = vec![path("c", "d", &[])];
+        let r = match_paths(&base, &new);
+        assert!(r.matches.is_empty());
+        // Identical empty paths still match exactly.
+        let same = vec![path("a", "b", &[])];
+        let r = match_paths(&base, &same);
+        assert_eq!(r.matches.len(), 1);
     }
 
     #[test]

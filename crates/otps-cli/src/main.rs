@@ -196,6 +196,11 @@ fn run_diff(
     }
 
     if let Some(budget_ps) = fail_on_regression_ps {
+        if !budget_ps.is_finite() || budget_ps < 0.0 {
+            return Err(format!(
+                "bad --fail-on-regression-ps '{budget_ps}': need >= 0"
+            ));
+        }
         if output.worst_slack_delta_ns < -budget_ps / 1000.0 {
             return Ok(2);
         }

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — otps docs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html">Home</a>
+    <a href="format.html">Format</a>
+    <a href="architecture.html" aria-current="page">Architecture</a>
+    <a href="adopters.html">Adopters</a>
+    <a href="roadmap.html">Roadmap</a>
+  </nav>
+</header>
+<main>
+<h1>Architecture</h1>
+<p>Four pipeline stages turn two report files into an explained, clustered
+diff. See the <a href="format.html">format spec</a> for the input schema.</p>
+
+<pre>report files ──▶ 1. Parse ──▶ 2. Match ──▶ 3. Attribute ──▶ 4. Cluster ──▶ text / JSON</pre>
+
+<h2>1. Parse</h2>
+<p><code>parse_text</code> reads the <a href="format.html">OTPS text format
+v0.1</a> (an <code>OpenSTA report_checks</code> subset) with a hand-rolled,
+allocation-light line parser — no regex — so multi-GB reports stay
+I/O-bound. <code>parse_json</code> imports JSON dumps produced by in-tool
+exporter scripts. The CLI auto-selects by extension: <code>.gz</code> inputs
+are gunzipped transparently, and <code>.json</code> / <code>.json.gz</code>
+inputs take the JSON path. Run identity (<code>--tool</code>,
+<code>--tool-version</code>, <code>--corner</code>, <code>--mode</code>,
+<code>--pdk</code>, <code>--flow-hash</code>) is attached at parse time; both
+reports in a <code>diff</code> share one run record in the current CLI.
+Parsed paths are validated against the self-consistency invariants before any
+matching happens.</p>
+
+<h2>2. Match</h2>
+<p><code>match_paths</code> aligns the "same" path across the two runs:</p>
+<ol>
+  <li><strong>Exact key:</strong> (startpoint, endpoint, launch clock, capture
+  clock, check type).</li>
+  <li><strong>Fuzzy fallback:</strong> Jaccard similarity over through-pin
+  sets (threshold 0.5) for renamed or ECO-touched paths. Fuzzy matches are
+  counted and reported explicitly.</li>
+</ol>
+<p>The match rate (<code>matches / max(base, new)</code>) plus unmatched-base
+and unmatched-new counts print on every report.</p>
+
+<h2>3. Attribute</h2>
+<p><code>attribute</code> explains each matched pair. Since
+<code>slack = required − arrival</code>:</p>
+<pre>Δslack = Δrequired − Δarrival,   Δarrival = Σcell Δ + Σnet Δ</pre>
+<p>Stage deltas pair points by pin name; unpaired stages count in full on
+their own side. Each attribution carries the slack/cell/net/data/required
+deltas, a <strong>residual</strong> (unexplained part — near zero when the
+math is sound), an <strong>explained ratio</strong>
+(<code>1 − |residual| / max(|Δslack|, eps)</code>), and a
+<strong>dominant</strong> component: <code>CellDelay</code>,
+<code>NetDelay</code>, <code>Required</code>, or <code>Balanced</code>.</p>
+
+<h2>4. Cluster</h2>
+<p><code>cluster</code> groups attributions by dominant component plus common
+hierarchy prefix, so thousands of miscorrelated endpoints collapse to a
+handful of root-cause lines such as
+<code>NetDelay x3 [u_core]: total -0.202 ns</code>.</p>
+
+<h2>Crate layout</h2>
+<pre>crates/otps-core  schema, parser, matcher, attribution + unit/integration tests
+  src/schema.rs        Run → Path → Point model, SCHEMA_VERSION, validate()
+  src/parser.rs        OTPS text v0.1 parser + JSON importer
+  src/matcher.rs       exact + Jaccard-fallback path matcher
+  src/attribution.rs   Δslack attribution + clustering
+crates/otps-cli   `otps` binary (parse/diff, text+json, --fail-on gate, .gz)
+fixtures/         synthetic pre/post-route pair with injected perturbations
+docs/             this guide + GitHub Pages site</pre>
+
+<h2>CLI reference</h2>
+<pre>otps parse &lt;file&gt; [--tool --tool-version --corner --mode --pdk --flow-hash] [--format text|json]
+otps diff &lt;base&gt; &lt;new&gt; [same run flags] [--format text|json] [--fail-on-regression-ps N]</pre>
+<ul>
+  <li><code>parse</code> prints one report's paths (<code>N paths (schema
+  X)</code>, then one line per path; JSON prints the full report).</li>
+  <li><code>diff</code> prints the summary from the <a href="index.html">home
+  page</a>; JSON prints counts, match rate, worst deltas, all attributions,
+  and clusters.</li>
+  <li>Exit codes: <code>0</code> clean, <code>2</code> when
+  <code>--fail-on-regression-ps N</code> trips (worst slack delta worse than
+  −N&nbsp;ps), <code>1</code> on parse/validation errors.</li>
+</ul>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+</body>
+</html>

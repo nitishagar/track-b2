@@ -41,8 +41,7 @@ fn field<'a>(line: &'a str, prefix: &str, lineno: usize) -> Result<&'a str> {
 
 fn number(line: &str, prefix: &str, lineno: usize) -> Result<f64> {
     let raw = field(line, prefix, lineno)?;
-    raw.parse::<f64>()
-        .map_err(|_| err(lineno, format!("bad number in '{prefix}'")))
+    parse_f64(raw, lineno).map_err(|_| err(lineno, format!("bad number in '{prefix}'")))
 }
 
 fn parse_check(raw: &str, lineno: usize) -> Result<Check> {
@@ -54,8 +53,13 @@ fn parse_check(raw: &str, lineno: usize) -> Result<Check> {
 }
 
 fn parse_f64(raw: &str, lineno: usize) -> Result<f64> {
-    raw.parse::<f64>()
-        .map_err(|_| err(lineno, format!("bad number '{raw}'")))
+    let value: f64 = raw
+        .parse::<f64>()
+        .map_err(|_| err(lineno, format!("bad number '{raw}'")))?;
+    if !value.is_finite() {
+        return Err(err(lineno, format!("non-finite number '{raw}'")));
+    }
+    Ok(value)
 }
 
 fn parse_point(line: &str, lineno: usize) -> Result<TimingPoint> {
@@ -68,6 +72,9 @@ fn parse_point(line: &str, lineno: usize) -> Result<TimingPoint> {
     let cell = cols.next().map(str::trim).unwrap_or_default();
     let net = cols.next().map(str::trim).unwrap_or_default();
     let attrs = cols.next().unwrap_or_default();
+    if cols.next().is_some() {
+        return Err(err(lineno, "unexpected column in point line"));
+    }
 
     let mut point = TimingPoint {
         pin: pin.to_owned(),
@@ -256,6 +263,22 @@ mod tests {
     fn rejects_truncated_path() {
         let bad = "Startpoint: a\nEndpoint: b\n";
         assert!(parse_text(bad, Run::default()).is_err());
+    }
+
+    #[test]
+    fn rejects_non_finite_numbers() {
+        for bad in ["NaN", "inf", "-inf"] {
+            let input = SAMPLE.replace("Slack: 0.100", &format!("Slack: {bad}"));
+            assert!(parse_text(&input, Run::default()).is_err(), "{bad} slack");
+            let input = SAMPLE.replace("cell=0.050", &format!("cell={bad}"));
+            assert!(parse_text(&input, Run::default()).is_err(), "{bad} cell");
+        }
+    }
+
+    #[test]
+    fn rejects_extra_point_column() {
+        let input = SAMPLE.replace("fanout=2\n", "fanout=2 | garbage\n");
+        assert!(parse_text(&input, Run::default()).is_err());
     }
 
     #[test]
