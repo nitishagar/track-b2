@@ -71,7 +71,7 @@ path is allocation-light so multi-GB reports stay I/O-bound. Run
 - Public fixtures and demos use **only OpenSTA/OpenROAD-style data**.
 - OpenSTA is GPL-3.0: this repo **never links it** (subprocess use only).
 - Never publish commercial-tool outputs or tool-vs-tool comparisons.
-  See `CONTRIBUTING.md` (coming with docs) before contributing samples.
+  See `CONTRIBUTING.md` before contributing samples.
 
 ## Repo layout
 
