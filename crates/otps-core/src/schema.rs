@@ -235,8 +235,8 @@ mod tests {
         ] {
             let mut path = valid_path();
             mutate(&mut path);
-            assert!(!path.validate(1e-9).is_empty());
+            assert_ne!(path.validate(1e-9), Vec::<String>::new());
         }
-        assert!(valid_path().validate(1e-9).is_empty());
+        assert_eq!(valid_path().validate(1e-9), Vec::<String>::new());
     }
 }

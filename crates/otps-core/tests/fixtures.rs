@@ -12,9 +12,13 @@ fn load(name: &str) -> otps_core::TimingReport {
 fn fixtures_validate() {
     for name in ["base.rpt", "route.rpt"] {
         let report = load(name);
-        assert!(!report.paths.is_empty(), "{name} has no paths");
+        assert_ne!(report.paths, Vec::new(), "{name} has no paths");
         for path in &report.paths {
-            assert!(path.validate(1e-9).is_empty(), "{name}: {path:?}");
+            assert_eq!(
+                path.validate(1e-9),
+                Vec::<String>::new(),
+                "{name}: {path:?}"
+            );
         }
     }
 }

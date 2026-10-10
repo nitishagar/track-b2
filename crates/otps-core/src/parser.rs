@@ -256,7 +256,7 @@ mod tests {
         let path = &report.paths[0];
         assert_eq!(path.check, Check::Setup);
         assert_eq!(path.points.len(), 2);
-        assert!(path.validate(1e-9).is_empty());
+        assert_eq!(path.validate(1e-9), Vec::<String>::new());
     }
 
     #[test]

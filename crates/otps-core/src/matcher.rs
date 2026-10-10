@@ -230,7 +230,7 @@ mod tests {
         let base = vec![path("a", "b", &[])];
         let new = vec![path("c", "d", &[])];
         let r = match_paths(&base, &new);
-        assert!(r.matches.is_empty());
+        assert_eq!(r.matches, Vec::new());
         // Identical empty paths still match exactly.
         let same = vec![path("a", "b", &[])];
         let r = match_paths(&base, &same);
