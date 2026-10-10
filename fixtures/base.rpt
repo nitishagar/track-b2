@@ -1,0 +1,94 @@
+# OTPS fixture: pre-route (estimated parasitics), ibex-like on sky130hd.
+# Synthetic data in OpenSTA report_checks subset format. No vendor data.
+Startpoint: u_core/ff1
+Endpoint: u_core/ff2
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.100
+Required: 1.000
+Arrival: 0.900
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_core/ff1/CK | DFFHQX1 | net_clk1 | cell=0.050 net=0.010 slew=0.020 cap=0.003 fanout=2
+u_core/ff2/D | DFFHQX1 | net_d1 | cell=0.640 net=0.200 slew=0.040 cap=0.005 fanout=1 derate=1.050
+End
+
+Startpoint: u_core/ff3
+Endpoint: u_core/ff4
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.200
+Required: 1.000
+Arrival: 0.800
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_core/ff3/CK | DFFHQX1 | net_clk3 | cell=0.100 net=0.020 slew=0.025 cap=0.004 fanout=2
+u_core/ff4/D | DFFHQX1 | net_d3 | cell=0.500 net=0.180 slew=0.045 cap=0.006 fanout=1
+End
+
+Startpoint: u_core/ff5
+Endpoint: u_mem/sram0
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.400
+Required: 1.000
+Arrival: 0.600
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_core/ff5/CK | DFFHQX1 | net_clk5 | cell=0.080 net=0.030 slew=0.022 cap=0.003 fanout=3
+u_mem/sram0/ADDR0 | SRAM1RW64x32 | net_addr0 | cell=0.400 net=0.090 slew=0.050 cap=0.008 fanout=1
+End
+
+Startpoint: u_io/pad1
+Endpoint: u_core/ff6
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.600
+Required: 0.900
+Arrival: 0.300
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_io/pad1/PAD | PADIN | net_pad1 | cell=0.200 net=0.100 slew=0.060 cap=0.010 fanout=1
+End
+
+Startpoint: u_core/ff7
+Endpoint: u_core/ff8
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: hold
+Slack: -0.020
+Required: 0.050
+Arrival: 0.070
+Crpr: 0.000
+Uncertainty: 0.020
+Points:
+u_core/ff7/Q | DFFHQX1 | net_q7 | cell=0.050 net=0.020 slew=0.030 cap=0.004 fanout=1 sigma=0.004
+End
+
+Startpoint: u_clk/buf0
+Endpoint: u_core/ff9
+Launch clock: clk
+Capture clock: clk
+Group: clk
+Check: setup
+Slack: 0.650
+Required: 1.000
+Arrival: 0.350
+Crpr: 0.000
+Uncertainty: 0.050
+Points:
+u_clk/buf0/Z | CLKBUF | net_clk9 | cell=0.300 net=0.050 slew=0.035 cap=0.006 fanout=4
+End
