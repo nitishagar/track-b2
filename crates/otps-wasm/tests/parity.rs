@@ -38,7 +38,7 @@ fn legacy_pair_matches_cli_values() {
     assert_eq!(d["exact_matches"], 6);
     assert_eq!(d["fuzzy_matches"], 0);
     assert_eq!(d["base_run"]["tool"], "opensta");
-    assert!(d["run_mismatches"].as_array().expect("array").is_empty());
+    assert_eq!(d["run_mismatches"], Value::Array(Vec::new()));
 }
 
 #[test]
@@ -89,5 +89,5 @@ fn new_run_falls_back_to_base_run() {
     let d: Value = serde_json::from_str(&out).expect("success parses");
     assert_eq!(d["base_run"]["corner"], "tt");
     assert_eq!(d["new_run"]["corner"], "tt");
-    assert!(d["run_mismatches"].as_array().expect("array").is_empty());
+    assert_eq!(d["run_mismatches"], Value::Array(Vec::new()));
 }
