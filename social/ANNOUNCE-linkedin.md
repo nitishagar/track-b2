@@ -2,7 +2,8 @@
 
 > Copy/paste ready. Carousel = 6 slides (cover + 5 root causes + closer = 7 cards
 > total; LinkedIn allows up to 20). Suggested format: one card per section below,
-> exported as PDF carousel. All tool claims verified against the repo (v0.1.0).
+> exported as PDF carousel. All tool claims verified against the repo (tool
+> v0.1.0, schema 0.2.0).
 
 ---
 
@@ -19,13 +20,15 @@ cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt
 ```
 
 It aligns the "same" paths across two runs (pre- vs post-route, corner A vs B,
-flow v1 vs ported v2), attributes every slack delta to cell vs net vs
-required time, and clusters thousands of endpoints into a handful of root
-causes. Rust, Apache-2.0, zero telemetry, zero network calls.
+flow v1 vs ported v2), attributes every slack delta over 11 components —
+cell/net per stage plus a fully split required side — and clusters thousands
+of endpoints into a handful of root causes. Rust, Apache-2.0, zero telemetry,
+zero network calls.
 
-Every report prints its **match rate** and **unexplained residual** — a large
-residual means "uncertain", never "clean". It is signoff-adjacent triage,
-never a signoff tool.
+Every report prints its honest **match rate** (exact-only, fuzzy split out),
+**unexplained residual**, and per-path confidence — a large residual means
+"uncertain", never "clean". It is signoff-adjacent triage, never a signoff
+tool.
 
 🇮🇳 **Why this matters for India VLSI:** with ChipIN/C-DAC putting EDA in reach
 of 500+ organisations, 105 DLI startups doing real tapeouts, and mixed
@@ -63,7 +66,7 @@ Real fixture output (synthetic ibex-like, sky130hd, pre- vs post-route):
 
 ```
 clusters:
-  NetDelay x3 [u_core]: total -0.202 ns
+  NetDelay x4 [clk]: total -0.217 ns
 ```
 
 ---
@@ -73,11 +76,9 @@ clusters:
 **Library, VT-swap, sizing, or derate-driven gate delay.**
 
 Same attribution, other component: per-stage cell-delay deltas summed by pin
-pairing. If ECO sizing or a .lib change moved gate delay, the dominant
-component reads `CellDelay`, not `NetDelay` — so you stop blaming the router.
-
-(The schema already reserves per-stage `derate`, POCV `sigma`, and SI-delta
-fields; per-factor splitting inside cell delay is roadmap, not v0.1.)
+pairing, with derate and SI sub-splits and a POCV sigma RSS + 3σ flag. If
+ECO sizing or a .lib change moved gate delay, the dominant component reads
+`CellDelay`, not `NetDelay` — so you stop blaming the router.
 
 ---
 
@@ -85,11 +86,13 @@ fields; per-factor splitting inside cell delay is roadmap, not v0.1.)
 
 **The capture side moved, not your data path.**
 
-`Δslack = Δrequired − Δarrival`. Clock-latency shifts, uncertainty, and CRPR
-changes land in the `Required` component — e.g. the fixture's IO path:
+`Δslack = s·(Δrequired_parts − Δarrival_parts)`, sign-aware per check.
+Clock-latency shifts land in `CaptureClock` (uncertainty, CRPR, check
+margin, and external delay are separate components too) — e.g. the
+fixture's IO path:
 
 ```
--0.050 ns  Required  u_io/pad1 -> u_core/ff6  (explained 100%)
+-0.050 ns  CaptureClock  u_io/pad1 -> u_core/ff6  (explained 100%)
 ```
 
 Classic trap this catches: chasing "data path" violations that are really a
@@ -102,12 +105,12 @@ Innovus-vs-signoff insertion-delay miscorrelation mechanism.)
 
 **Same path, new name — still matched.**
 
-Exact key match (startpoint, endpoint, clocks, check type) first; then a
-through-pin Jaccard fallback (≥ 0.5, same check type) aligns renamed or
-ECO-touched paths and labels them fuzzy:
+Exact key match (startpoint, endpoint, clocks, edges, group, check,
+flavor) first; then an inverted-index through-pin Jaccard fallback (≥ 0.5,
+same check type) aligns renamed or ECO-touched paths and labels them fuzzy:
 
 ```
-fuzzy matches: N (renamed/ECO-touched paths)
+exact: 6  fuzzy: 0  combined rate: 85.7% (renamed/ECO-touched paths stay visible)
 ```
 
 No more "path disappeared" false alarms after an ECO.
@@ -123,11 +126,13 @@ Unmatched paths are counted on both sides, and every report prints:
 ```
 match rate: 85.7%
 worst residual: 0.000000 ns
+unmatched-new WNS: +0.300 ns
 ```
 
-Match rate = matched / max(base, new). Residual = unexplained slack per
-path. Low match rate or large residual means **"uncertain"** — the tool
-tells you when it doesn't know. That is the whole trust model.
+Match rate = exact / max(base, new); fuzzy pairs get their own
+`fuzzy_rate` / `combined_rate`. Residual = unexplained slack per path. Low
+match rate or large residual means **"uncertain"** — the tool tells you when
+it doesn't know. That is the whole trust model.
 
 ---
 
@@ -137,8 +142,8 @@ tells you when it doesn't know. That is the whole trust model.
 
 ```sh
 cargo build --locked
-cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --corner sky130hd
-# CI gate: exit 2 if any path regresses > 50 ps
+cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --base-pdk sky130hd
+# CI gate: exit 2 if any path regresses > 50 ps, or any added path violates > 50 ps
 cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --fail-on-regression-ps 50
 ```
 

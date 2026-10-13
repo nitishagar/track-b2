@@ -1,6 +1,6 @@
 //! Fixture tests: pre-route vs post-route diff on synthetic OpenSTA-subset data.
 
-use otps_core::{attribute, cluster, match_paths, parse_text, Component, Run};
+use otps_core::{attribute, cluster, match_paths, parse_text, Component, Run, Severity};
 
 fn load(name: &str) -> otps_core::TimingReport {
     let path = format!("{}/../../fixtures/{name}", env!("CARGO_MANIFEST_DIR"));
@@ -14,10 +14,12 @@ fn fixtures_validate() {
         let report = load(name);
         assert_ne!(report.paths, Vec::new(), "{name} has no paths");
         for path in &report.paths {
+            let validation = path.validate(1e-9);
             assert_eq!(
-                path.validate(1e-9),
-                Vec::<String>::new(),
-                "{name}: {path:?}"
+                validation.severity,
+                Severity::Clean,
+                "{name}: {path:?} {:?}",
+                validation.problems
             );
         }
     }
@@ -56,7 +58,7 @@ fn perturbation_test_attributes_net_delay() {
         }
         if attr.endpoint == "u_core/ff6" {
             // IO path: data unchanged, capture clock latency moved required.
-            assert_eq!(attr.dominant, Component::Required);
+            assert_eq!(attr.dominant, Component::CaptureClock);
         }
     }
     assert_eq!(net_blamed, 2);

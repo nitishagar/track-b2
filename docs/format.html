@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0d1116">
-<title>OTPS Text Format v0.1 — otps docs</title>
+<title>Supported inputs (schema 0.2.0) — otps docs</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,30 +19,62 @@
   </nav>
 </header>
 <main>
-<h1>OTPS text format v0.1</h1>
-<p>The Open Timing Path Schema (OTPS) text format is an
-<code>OpenSTA report_checks</code> subset mapping: one plain-text report holds
-any number of timing paths. Blank lines and lines starting with
-<code>#</code> are ignored. All delays are in nanoseconds. The CLI reads
-<code>.rpt</code>/<code>.txt</code> directly, plus <code>.gz</code>-compressed
-inputs; <code>.json</code> (or <code>.json.gz</code>) files are parsed as
-in-tool exporter JSON dumps instead (see <a href="architecture.html">parse
-stage</a>).</p>
+<h1>Supported inputs (schema 0.2.0)</h1>
+<p><code>otps</code> ingests real STA reports — no exporter required for the
+OpenSTA flow. All delays are in nanoseconds. The CLI auto-sniffs each input
+(text vs JSON), reads <code>.gz</code>-compressed inputs transparently, and
+accepts <code>-</code> for stdin. The three layouts below all land in the
+same Open Timing Path Schema (<code>Run → Path → Point</code>). Identity
+includes the report flavor, so diff same-format reports: a text-vs-JSON
+cross-format diff of the same design will not match, by design.</p>
 
-<h2>Path block</h2>
-<p>Each path is a fixed-order header, a <code>Points:</code> line, one or more
-point lines, and a terminating <code>End</code> line:</p>
+<h2>Real <code>report_checks</code> text (primary)</h2>
+<p>Plain <code>report_checks</code> output: <code>Startpoint</code> /
+<code>Endpoint</code> headers, <code>Arrival</code> / <code>Required</code>
+spans with <code>Time</code> and <code>Delay</code> columns, and a
+<code>slack</code> footer. Time-delta spans are canonical (the Delay column
+cross-checks them); folded <code>clock &lt;name&gt;</code> spans parse with
+their available edge split off as the clock edge time. Blocks the schema
+cannot represent — <code>(Path is unconstrained)</code> paths,
+<code>path_delay</code> and nonzero-<code>path_margin</code> summaries — are
+skipped and counted on stderr, never silent. Cap/slew/variation columns,
+generated-clock source paths, and short/end/summary aggregates are rejected
+with reasons (future work).</p>
+
+<h2>Native STA JSON</h2>
+<p>Native tool JSON path dumps stream through the same pipeline. Setup
+<code>margin</code> is negated at ingest (the schema stores the
+required-offset contribution), <code>output_delay</code> routes to external
+delay, and CRPR parity holds on both sides. Fields with no JSON key
+(uncertainty) stay unknown and are listed, not zeroed.</p>
+
+<h2>Legacy OTPS text v0.2</h2>
+<p>A fixed-order path block used by the shipped fixtures and the JSON
+exporter round-trip. (v0.1 layouts are rejected with a migration pointer.)
+Each path is a fixed-order header, a <code>Points:</code> line, one or more
+point lines, and a terminating <code>End</code> line. Blank lines and lines
+starting with <code>#</code> are ignored:</p>
 <pre>Startpoint: &lt;start pin/instance&gt;
 Endpoint: &lt;end pin/instance&gt;
 Launch clock: &lt;clock&gt;
 Capture clock: &lt;clock&gt;
+Launch edge: rise|fall|unknown
+Capture edge: rise|fall|unknown
 Group: &lt;path group, may be empty&gt;
 Check: setup|max|hold|min
-Slack: &lt;ns&gt;
+Slack: &lt;ns, per-check sign&gt;
 Required: &lt;ns&gt;
 Arrival: &lt;ns&gt;
-Crpr: &lt;ns&gt;
-Uncertainty: &lt;ns&gt;
+Launch edge time: &lt;ns&gt;
+Launch srclat: &lt;ns&gt;
+Launch net: &lt;ns&gt;
+Capture edge time: &lt;ns&gt;
+Capture srclat: &lt;ns&gt;
+Capture net: &lt;ns&gt;
+Uncertainty: &lt;ns&gt;|none
+Crpr: &lt;ns&gt;|none
+Margin: &lt;ns&gt;|none
+External: &lt;ns&gt;|none
 Points:
 &lt;point line&gt;
 ...
@@ -51,17 +83,20 @@ End</pre>
 <h2>Point line</h2>
 <p>Point lines use pipe-separated columns followed by space-separated
 <code>key=value</code> attributes:</p>
-<pre>&lt;pin&gt; | &lt;cell type&gt; | &lt;net&gt; | cell=&lt;ns&gt; net=&lt;ns&gt; slew=&lt;ns&gt; cap=&lt;pf&gt; fanout=&lt;int&gt; [derate=&lt;mult&gt;] [sigma=&lt;ns&gt;] [si=&lt;ns&gt;]</pre>
+<pre>&lt;pin&gt; | &lt;cell type&gt; | &lt;net&gt; | cell=&lt;ns&gt; net=&lt;ns&gt; slew=&lt;ns&gt; cap=&lt;fF&gt; fanout=&lt;int&gt; [derate=&lt;mult&gt;] [sigma=&lt;ns&gt;] [si=&lt;ns&gt;] [trans=&lt;rise|fall&gt;] [arrival=&lt;ns&gt;] [split=&lt;yes|no&gt;]</pre>
 <table>
 <tr><th>Attribute</th><th>Meaning</th><th>Required?</th></tr>
 <tr><td><code>cell</code></td><td>Cell (gate) incremental delay, ns</td><td>No (default 0)</td></tr>
 <tr><td><code>net</code></td><td>Net (wire) incremental delay, ns</td><td>No (default 0)</td></tr>
 <tr><td><code>slew</code></td><td>Transition slew, ns</td><td>No</td></tr>
-<tr><td><code>cap</code></td><td>Load capacitance</td><td>No</td></tr>
+<tr><td><code>cap</code></td><td>Load capacitance, fF</td><td>No</td></tr>
 <tr><td><code>fanout</code></td><td>Fanout count (integer)</td><td>No</td></tr>
 <tr><td><code>derate</code></td><td>Applied derate multiplier</td><td>Optional</td></tr>
 <tr><td><code>sigma</code></td><td>POCV/LVF sigma, ns</td><td>Optional</td></tr>
 <tr><td><code>si</code></td><td>SI-induced delta delay, ns</td><td>Optional</td></tr>
+<tr><td><code>trans</code></td><td>Transition marker (rise/fall)</td><td>Optional</td></tr>
+<tr><td><code>arrival</code></td><td>Cumulative arrival at this point, ns</td><td>Optional</td></tr>
+<tr><td><code>split</code></td><td>Available-edge split marker for folded clock spans (yes/no)</td><td>Optional</td></tr>
 </table>
 <p>Only the pin column is required; cell/net columns may be empty. Unknown
 attribute keys are a parse error (reported with a 1-based line number).</p>
@@ -72,16 +107,26 @@ Startpoint: u_core/ff1
 Endpoint: u_core/ff2
 Launch clock: clk
 Capture clock: clk
+Launch edge: rise
+Capture edge: rise
 Group: clk
 Check: setup
 Slack: 0.100
 Required: 1.000
 Arrival: 0.900
-Crpr: 0.000
-Uncertainty: 0.050
+Launch edge time: 0.000
+Launch srclat: 0.000
+Launch net: 0.000
+Capture edge time: 1.050
+Capture srclat: 0.000
+Capture net: 0.000
+Uncertainty: -0.050
+Crpr: none
+Margin: 0.000
+External: none
 Points:
-u_core/ff1/CK | DFFHQX1 | net_clk1 | cell=0.050 net=0.010 slew=0.020 cap=0.003 fanout=2
-u_core/ff2/D | DFFHQX1 | net_d1 | cell=0.640 net=0.200 slew=0.040 cap=0.005 fanout=1 derate=1.050
+u_core/ff1/CK | DFFHQX1 | net_clk1 | cell=0.050 net=0.010 slew=0.020 cap=0.003 fanout=2 trans=rise
+u_core/ff2/D | DFFHQX1 | net_d1 | cell=0.640 net=0.200 slew=0.040 cap=0.005 fanout=1 derate=1.050 trans=rise
 End</pre>
 
 <h2>Self-consistency invariants</h2>
@@ -89,7 +134,9 @@ End</pre>
 before matching):</p>
 <ul>
   <li><code>sum(point cell + net increments) == arrival</code></li>
-  <li><code>required - arrival == slack</code></li>
+  <li>setup: <code>required - arrival == slack</code>; hold:
+  <code>arrival - required == slack</code></li>
+  <li>required-side parts reconcile with the header required time</li>
 </ul>
 <p>A violation is reported as an error naming the endpoint — it flags a
 parser or exporter bug, never a timing verdict.</p>

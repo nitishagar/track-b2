@@ -1,7 +1,8 @@
 # Show HN draft — otps timing-correlation diff engine
 
-> All tool claims verified against the repo (v0.1.0). Post timing: weekday
-> morning US time. Reply commitment: author in comments all day.
+> All tool claims verified against the repo (tool v0.1.0, schema 0.2.0).
+> Post timing: weekday morning US time. Reply commitment: author in comments
+> all day.
 
 ---
 
@@ -26,48 +27,57 @@ evaluate.
 
 How it works:
 
-1. **Parse** an OpenSTA `report_checks` subset (or JSON dumps) into a
-   versioned schema (`Run → Path → Point`).
-2. **Match** the "same" path across runs: exact key first, then a
-   through-pin Jaccard fallback for renamed/ECO-touched paths.
-3. **Attribute** `Δslack = Δrequired − Δarrival`, splitting arrival into cell
-   vs net per stage — and report the unexplained **residual** on every path.
-4. **Cluster** by dominant component + hierarchy prefix, so thousands of
+1. **Parse** real OpenSTA `report_checks` text or native STA JSON
+   (streaming, gzip-aware, auto-sniffed) into a versioned schema
+   (`Run → Path → Point`). Each side gets its own run identity.
+2. **Match** the "same" path across runs: exact key first, then an
+   inverted-index through-pin Jaccard fallback (≥ 0.5, same check) for
+   renamed/ECO-touched paths.
+3. **Attribute** sign-aware over 11 components — cell/net per stage plus
+   launch/capture clock, edge, uncertainty, CRPR, check margin, external
+   delay — with derate/SI sub-splits and a per-path confidence, and report
+   the unexplained **residual** on every path.
+4. **Cluster** by dominant component + path group, so thousands of
    miscorrelated endpoints collapse to a handful of root causes.
 
 Real output on the shipped fixtures (synthetic ibex-like on sky130hd,
 pre- vs post-route):
 
 ```
-otps diff (schema 0.1.0)
+otps diff (schema 0.2.0)
 base: 6 paths  new: 7 paths  matched: 6 (unmatched base 0, new 1)
 match rate: 85.7%
+exact: 6  fuzzy: 0  combined rate: 85.7% (renamed/ECO-touched paths stay visible)
 worst slack delta: -0.102 ns
 worst residual: 0.000000 ns
+unmatched-new WNS: +0.300 ns
 top regressions:
   -0.102 ns  NetDelay  u_core/ff1 -> u_core/ff2  (explained 100%)
+    residual -0.000000 ns  confidence high  unknowns []  stages: ...
 clusters:
-  NetDelay x3 [u_core]: total -0.202 ns
+  NetDelay x4 [clk]: total -0.217 ns
 ```
 
 **Pre-empting the table-stakes questions:**
 
 - *"Toy demo, 6 paths?"* — Yes, deliberately. The fixtures exist to prove
-  the attribution identity, not scale. The parser is built to stay I/O-bound
-  on multi-GB reports, but I have no large public reports to prove it with
+  the attribution identity; scale is covered by CI ratio gates (sub-3x per
+  doubling on 4k→8k ingest and 500→1k fuzzy workloads) over streaming
+  iterators. But I have no large public reports to prove the multi-GB story
   yet — that's my ask: run `--format json` on your big OpenSTA reports and
   file the timings.
-- *"What about match quality?"* — Every report prints `match rate`
-  (matched / max(base, new)) and per-path residuals. A large residual means
-  "uncertain", never "clean". This is signoff-*adjacent* triage, never a
-  signoff tool — it narrows 2,000 endpoints to root causes; it never
-  certifies timing.
+- *"What about match quality?"* — Every report prints an honesty split:
+  `match_rate` counts exact pairs only (`exact / max(base, new)`), with
+  separate `fuzzy_rate` / `combined_rate`, per-path residuals, and the
+  unmatched-new WNS. A large residual means "uncertain", never "clean".
+  This is signoff-*adjacent* triage, never a signoff tool — it narrows
+  2,000 endpoints to root causes; it never certifies timing.
 - *"Cell/net/required is coarse — what about derate, POCV, SI, CRPR?"* —
-  Fair. Today required-time is one bucket (clock + uncertainty + CRPR) and
-  attribution splits only cell/net/required. The schema already carries
-  per-stage derate, sigma, and SI-delta fields; per-factor splitting is
-  sequenced roadmap work, driven by whichever failure cases the community
-  files first.
+  The required side is fully split now: launch/capture clock, edge,
+  uncertainty, CRPR, check margin, and external delay are separate
+  components, with derate and SI sub-splits and a POCV sigma RSS + 3σ flag.
+  Per-path confidence says when unknowns weaken the call. Failure cases
+  still wanted — that's what the residual column is for.
 - *"Why not just diff in PrimeTime/Tempus?"* — Vendor tools correlate within
   their own families; a vendor-neutral layer across runs, corners, flow
   versions, and PDKs is nobody's product incentive. Also: this will never

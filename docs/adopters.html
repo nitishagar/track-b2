@@ -37,23 +37,27 @@ on the home page</a>.</p>
 
 <h2>CI gate recipe</h2>
 <p>Fail the build (exit code <code>2</code>) when any matched path regresses
-more than the budget. <code>--fail-on-regression-ps N</code> trips when the
-worst slack delta is worse than −N&nbsp;ps:</p>
+more than the budget, or any added path violates beyond the budget absolute.
+<code>--fail-on-regression-ps N</code> trips when the worst matched slack
+delta is worse than −N&nbsp;ps, or the unmatched-new WNS is worse than
+−N&nbsp;ps:</p>
 <pre># Shell / Jenkins / generic CI
 cargo run -q -p otps-cli -- diff base.rpt route.rpt --fail-on-regression-ps 50
-# exit 0 = within budget, exit 2 = regression beyond 50 ps, exit 1 = input error</pre>
+# exit 0 = within budget, exit 2 = gate tripped, exit 1 = input error</pre>
 <pre># GitHub Actions
 - name: Timing regression gate
   run: |
     cargo run -q -p otps-cli -- diff base.rpt route.rpt \
-      --corner ${{ matrix.corner }} --format json --fail-on-regression-ps 50 | tee diff.json</pre>
-<p>Use <code>--format json</code> for machine-readable output (counts, match
-rate, worst deltas, attributions, clusters) and <code>--corner</code> /
-<code>--mode</code> / <code>--pdk</code> to label the run. Tip: gate on a
-budget your flow genuinely holds (start loose, e.g. 100&nbsp;ps, and tighten
-once the attribution output is trusted), and always read the printed match
-rate and residual before treating a green gate as "clean". Flag details are
-in the <a href="architecture.html">CLI reference</a>.</p>
+      --base-corner ${{ matrix.corner }} --format json --fail-on-regression-ps 50 | tee diff.json</pre>
+<p>Use <code>--format json</code> for machine-readable output (counts,
+match/fuzzy/combined rates, worst deltas, unmatched-new WNS, both runs with
+mismatches, attributions, clusters) and <code>--base-corner</code> /
+<code>--new-corner</code> / <code>--base-pdk</code> / … to label each side.
+Tip: gate on a budget your flow genuinely holds (start loose, e.g.
+100&nbsp;ps, and tighten once the attribution output is trusted), and always
+read the printed match rate and residual before treating a green gate as
+"clean". Flag details are in the
+<a href="architecture.html">CLI reference</a>.</p>
 
 <h2>EULA guardrails</h2>
 <div class="notice"><strong>Non-negotiable.</strong> These rules protect the

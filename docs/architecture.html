@@ -26,70 +26,88 @@ diff. See the <a href="format.html">format spec</a> for the input schema.</p>
 <pre>report files ──▶ 1. Parse ──▶ 2. Match ──▶ 3. Attribute ──▶ 4. Cluster ──▶ text / JSON</pre>
 
 <h2>1. Parse</h2>
-<p><code>parse_text</code> reads the <a href="format.html">OTPS text format
-v0.1</a> (an <code>OpenSTA report_checks</code> subset) with a hand-rolled,
-allocation-light line parser — no regex — so multi-GB reports stay
-I/O-bound. <code>parse_json</code> imports JSON dumps produced by in-tool
-exporter scripts. The CLI auto-selects by extension: <code>.gz</code> inputs
-are gunzipped transparently, and <code>.json</code> / <code>.json.gz</code>
-inputs take the JSON path. Run identity (<code>--tool</code>,
-<code>--tool-version</code>, <code>--corner</code>, <code>--mode</code>,
-<code>--pdk</code>, <code>--flow-hash</code>) is attached at parse time; both
-reports in a <code>diff</code> share one run record in the current CLI.
-Parsed paths are validated against the self-consistency invariants before any
-matching happens.</p>
+<p>Streaming iterators read the <a href="format.html">supported inputs</a>
+with hand-rolled, allocation-light line parsing — no regex — so multi-GB
+reports stay I/O-bound: <code>PathIter</code> for real OpenSTA
+<code>report_checks</code> text, <code>JsonPathIter</code> for native STA
+JSON, plus the legacy OTPS text v0.2 layout. The CLI sniffs each input
+(<code>.gz</code> gunzipped transparently, <code>-</code> reads stdin) with
+bounded 1&nbsp;MiB blocks and an error budget. Each side of a
+<code>diff</code> gets its own run identity (<code>--base-*</code> flags,
+<code>--new-*</code> overrides), and field-level run mismatches print on
+every report. Unrepresentable blocks — unconstrained paths,
+<code>path_delay</code> / nonzero-<code>path_margin</code> summaries — are
+counted, never silent. Parsed paths are validated against the
+self-consistency invariants before any matching happens.</p>
 
 <h2>2. Match</h2>
 <p><code>match_paths</code> aligns the "same" path across the two runs:</p>
 <ol>
   <li><strong>Exact key:</strong> (startpoint, endpoint, launch clock, capture
-  clock, check type).</li>
-  <li><strong>Fuzzy fallback:</strong> Jaccard similarity over through-pin
-  sets (threshold 0.5) for renamed or ECO-touched paths. Fuzzy matches are
-  counted and reported explicitly.</li>
+  clock, edges, group, check type, flavor), FIFO on duplicate keys.</li>
+  <li><strong>Fuzzy fallback:</strong> inverted-index Jaccard over data-pin
+  sets (threshold 0.5, top-128 survivors per path) for renamed or
+  ECO-touched paths. Fuzzy hard-blocks check-type and flavor mismatches and
+  prefers same-clock pairs; matches carry their Jaccard score.</li>
 </ol>
-<p>The match rate (<code>matches / max(base, new)</code>) plus unmatched-base
-and unmatched-new counts print on every report.</p>
+<p>Honesty split: <code>match_rate = exact / max(base, new)</code>, with
+separate <code>fuzzy_rate</code> and <code>combined_rate</code>, plus
+unmatched-base / unmatched-new counts and the unmatched-new absolute WNS —
+all printed on every report. Note: identity includes the report flavor, so
+text-vs-JSON cross-format diffs of the same design do not match by
+design — diff same-format reports.</p>
 
 <h2>3. Attribute</h2>
-<p><code>attribute</code> explains each matched pair. Since
-<code>slack = required − arrival</code>:</p>
-<pre>Δslack = Δrequired − Δarrival,   Δarrival = Σcell Δ + Σnet Δ</pre>
-<p>Stage deltas pair points by pin name; unpaired stages count in full on
-their own side. Each attribution carries the slack/cell/net/data/required
-deltas, a <strong>residual</strong> (unexplained part — near zero when the
-math is sound), an <strong>explained ratio</strong>
-(<code>1 − |residual| / max(|Δslack|, eps)</code>), and a
-<strong>dominant</strong> component: <code>CellDelay</code>,
-<code>NetDelay</code>, <code>Required</code>, or <code>Balanced</code>.</p>
+<p><code>attribute</code> explains each matched pair with per-check slack
+sign (setup is required&nbsp;−&nbsp;arrival, hold is arrival&nbsp;−&nbsp;required):</p>
+<pre>Δslack = s·(Δrequired_parts − Δarrival_parts)</pre>
+<p>Stage deltas pair points by pin name into a top-8 added/removed stage
+list; unpaired stages count in full on their own side. Each attribution
+carries the slack/cell/net/data/required deltas, derate and SI sub-splits, a
+POCV sigma RSS with a 3σ flag, a <strong>residual</strong> (unexplained part
+— near zero when the math is sound), an <strong>explained ratio</strong>
+(<code>1 − |residual| / max(|Δslack|, eps)</code>), a per-path
+<strong>confidence</strong> (<code>High</code> / <code>Reduced</code> with
+reasons), and a <strong>dominant</strong> component:
+<code>CellDelay</code>, <code>NetDelay</code>, <code>LaunchClock</code>,
+<code>CaptureClock</code>, <code>ClockEdge</code>, <code>Uncertainty</code>,
+<code>Crpr</code>, <code>CheckMargin</code>, <code>ExternalDelay</code>,
+<code>Unexplained</code>, or <code>Balanced</code>.</p>
 
 <h2>4. Cluster</h2>
-<p><code>cluster</code> groups attributions by dominant component plus common
-hierarchy prefix, so thousands of miscorrelated endpoints collapse to a
-handful of root-cause lines such as
-<code>NetDelay x3 [u_core]: total -0.202 ns</code>.</p>
+<p><code>cluster</code> groups attributions by dominant component plus path
+group (endpoint hierarchy prefix when the input carries no group), so
+thousands of miscorrelated endpoints collapse to a handful of root-cause
+lines such as
+<code>NetDelay x4 [clk]: total -0.217 ns</code>.</p>
 
 <h2>Crate layout</h2>
 <pre>crates/otps-core  schema, parser, matcher, attribution + unit/integration tests
   src/schema.rs        Run → Path → Point model, SCHEMA_VERSION, validate()
-  src/parser.rs        OTPS text v0.1 parser + JSON importer
-  src/matcher.rs       exact + Jaccard-fallback path matcher
-  src/attribution.rs   Δslack attribution + clustering
+  src/sta.rs           real report_checks text: PathIter stream + sniffing
+  src/sta_json.rs      native STA JSON: JsonPathIter stream + sniffing
+  src/parser.rs        legacy OTPS text v0.2 parser + JSON importer
+  src/matcher.rs       exact + inverted-index Jaccard path matcher
+  src/attribution.rs   sign-aware attribution + clustering
 crates/otps-cli   `otps` binary (parse/diff, text+json, --fail-on gate, .gz)
-fixtures/         synthetic pre/post-route pair with injected perturbations
+fixtures/         synthetic pre/post-route pairs with injected perturbations
 docs/             this guide + GitHub Pages site</pre>
 
 <h2>CLI reference</h2>
 <pre>otps parse &lt;file&gt; [--tool --tool-version --corner --mode --pdk --flow-hash] [--format text|json]
-otps diff &lt;base&gt; &lt;new&gt; [same run flags] [--format text|json] [--fail-on-regression-ps N]</pre>
+otps diff &lt;base&gt; &lt;new&gt; [--base-* run flags] [--new-* overrides] [--format text|json] [--fail-on-regression-ps N]</pre>
 <ul>
   <li><code>parse</code> prints one report's paths (<code>N paths (schema
   X)</code>, then one line per path; JSON prints the full report).</li>
   <li><code>diff</code> prints the summary from the <a href="index.html">home
-  page</a>; JSON prints counts, match rate, worst deltas, all attributions,
-  and clusters.</li>
+  page</a>; JSON prints counts, match/fuzzy/combined rates, worst deltas,
+  unmatched-new WNS, both runs with mismatches, all attributions, matches,
+  and clusters. New-side run flags fall back per field to the base side,
+  and the unprefixed spellings (<code>--corner</code>, …) still work as
+  base-side aliases.</li>
   <li>Exit codes: <code>0</code> clean, <code>2</code> when
-  <code>--fail-on-regression-ps N</code> trips (worst slack delta worse than
+  <code>--fail-on-regression-ps N</code> trips (worst matched slack delta
+  worse than −N&nbsp;ps, or unmatched-new absolute WNS worse than
   −N&nbsp;ps), <code>1</code> on parse/validation errors.</li>
 </ul>
 </main>

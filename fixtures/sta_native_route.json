@@ -1,0 +1,94 @@
+{"checks": [
+{
+  "type": "check",
+  "path_group": "clk",
+  "path_type": "max",
+  "startpoint": "u_core/ff1",
+  "endpoint": "u_core/ff2",
+  "source_clock": "clk",
+  "source_clock_edge": "rise",
+  "source_clock_path": [
+    {"instance": "", "cell": "otps_synth", "verilog_src": "", "pin": "clk",
+     "arrival": 0.000e+00, "slew": 0.000e+00},
+    {"instance": "u_core/ff1", "cell": "DFF_X1", "verilog_src": "", "pin": "u_core/ff1/CK",
+     "net": "clk", "arrival": 1.000e-11, "slew": 1.000e-11}
+  ],
+  "source_path": [
+    {"instance": "u_core/ff1", "cell": "DFF_X1", "verilog_src": "", "pin": "u_core/ff1/Q",
+     "net": "n1", "arrival": 6.500e-10, "capacitance": 1.900e-15, "slew": 1.100e-11},
+    {"instance": "u_core/ff2", "cell": "DFF_X1", "verilog_src": "", "pin": "u_core/ff2/D",
+     "net": "n1", "arrival": 9.500e-10, "slew": 1.400e-11}
+  ],
+  "target_clock": "clk",
+  "target_clock_edge": "rise",
+  "target_clock_path": [
+    {"instance": "", "cell": "otps_synth", "verilog_src": "", "pin": "clk",
+     "arrival": 1.000e-09, "slew": 0.000e+00}
+  ],
+  "data_arrival_time": 9.500e-10,
+  "crpr": 0.000e+00,
+  "margin": 5.000e-11,
+  "required_time": 9.000e-10,
+  "slack": -5.000e-11
+},
+{
+  "type": "check",
+  "path_group": "clk",
+  "path_type": "min",
+  "startpoint": "u_core/ff7",
+  "endpoint": "u_core/ff8",
+  "source_clock": "clk",
+  "source_clock_edge": "rise",
+  "source_clock_path": [
+    {"instance": "", "pin": "clk", "arrival": 0.000e+00, "slew": 0.000e+00},
+    {"instance": "u_core/ff7", "cell": "DFF_X1", "pin": "u_core/ff7/CK",
+     "net": "clk", "arrival": 0.000e+00, "slew": 1.000e-11}
+  ],
+  "source_path": [
+    {"instance": "u_core/ff7", "cell": "DFF_X1", "pin": "u_core/ff7/Q",
+     "net": "n7", "arrival": 4.000e-11, "capacitance": 1.800e-15, "slew": 1.000e-11},
+    {"instance": "u_core/ff8", "cell": "DFF_X1", "pin": "u_core/ff8/D",
+     "net": "n7", "arrival": 6.000e-11, "slew": 1.100e-11}
+  ],
+  "target_clock": "clk",
+  "target_clock_edge": "rise",
+  "target_clock_path": [
+    {"instance": "", "pin": "clk", "arrival": 0.000e+00, "slew": 0.000e+00}
+  ],
+  "data_arrival_time": 6.000e-11,
+  "crpr": 0.000e+00,
+  "margin": 1.000e-11,
+  "required_time": 1.000e-11,
+  "slack": 5.000e-11
+},
+{
+  "type": "output_delay",
+  "path_group": "clk",
+  "path_type": "max",
+  "startpoint": "u_core/ff10",
+  "endpoint": "u_io/pad5",
+  "source_clock": "clk",
+  "source_clock_edge": "rise",
+  "source_clock_path": [
+    {"instance": "", "pin": "clk", "arrival": 0.000e+00, "slew": 0.000e+00},
+    {"instance": "u_core/ff10", "cell": "DFF_X1", "pin": "u_core/ff10/CK",
+     "net": "clk", "arrival": 0.000e+00, "slew": 1.000e-11}
+  ],
+  "source_path": [
+    {"instance": "u_core/ff10", "cell": "DFF_X1", "pin": "u_core/ff10/Q",
+     "net": "n10", "arrival": 3.000e-10, "capacitance": 2.000e-15, "slew": 1.200e-11},
+    {"instance": "", "pin": "u_io/pad5", "net": "n10",
+     "arrival": 4.000e-10, "slew": 1.500e-11}
+  ],
+  "target_clock": "clk",
+  "target_clock_edge": "rise",
+  "target_clock_path": [
+    {"instance": "", "pin": "clk", "arrival": 1.000e-09, "slew": 0.000e+00}
+  ],
+  "data_arrival_time": 4.000e-10,
+  "crpr": 0.000e+00,
+  "margin": 2.000e-10,
+  "required_time": 8.000e-10,
+  "slack": 4.000e-10
+}
+]}

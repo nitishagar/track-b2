@@ -1,0 +1,26 @@
+# OTPS fixture: gate-test base (legacy OTPS v0.2 layout, synthetic data).
+Startpoint: u_core/ff1
+Endpoint: u_core/ff2
+Launch clock: clk
+Capture clock: clk
+Launch edge: rise
+Capture edge: rise
+Group: clk
+Check: setup
+Slack: 0.100
+Required: 1.000
+Arrival: 0.900
+Launch edge time: 0.000
+Launch srclat: 0.000
+Launch net: 0.000
+Capture edge time: 1.050
+Capture srclat: 0.000
+Capture net: 0.000
+Uncertainty: -0.050
+Crpr: none
+Margin: 0.000
+External: none
+Points:
+u_core/ff1/CK | DFFHQX1 | net_clk1 | cell=0.050 net=0.010 slew=0.020 cap=0.003 fanout=2 trans=rise
+u_core/ff2/D | DFFHQX1 | net_d1 | cell=0.640 net=0.200 slew=0.040 cap=0.005 fanout=1 trans=rise
+End

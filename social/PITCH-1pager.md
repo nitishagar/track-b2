@@ -1,7 +1,7 @@
 # otps — Timing-Correlation Diff Engine (1-pager pitch)
 
 > Leave-behind for brown-bags, partners, and curious STA engineers.
-> Every claim verified against the repo (v0.1.0, schema 0.1.0).
+> Every claim verified against the repo (tool v0.1.0, schema 0.2.0).
 
 ---
 
@@ -24,16 +24,20 @@ are visualization-only or aggregate worst-slack gates.)
 **otps** aligns the "same" timing paths across two reports and explains why
 slack moved, stage by stage, in seconds, offline.
 
-- **Parse** — OpenSTA `report_checks` subset (plain text or `.gz`) or JSON
-  dumps into the versioned Open Timing Path Schema (`Run → Path → Point`)
-- **Match** — exact key (startpoint, endpoint, clocks, check type), then a
-  through-pin Jaccard fallback (≥ 0.5) for renamed/ECO-touched paths
-- **Attribute** — `Δslack = Δrequired − Δarrival`, arrival split into cell
-  vs net per stage; residual always reported
-- **Cluster** — group by dominant component + hierarchy prefix, so thousands
-  of miscorrelated endpoints collapse to a handful of root causes
-- **Gate** — `--fail-on-regression-ps N` exits 2 for CI; `--format json`
-  for machines
+- **Parse** — real OpenSTA `report_checks` text or native STA JSON (plain,
+  `.gz`, or stdin; auto-sniffed, streaming) into the versioned Open Timing
+  Path Schema (`Run → Path → Point`), with per-side run identity
+- **Match** — exact key (startpoint, endpoint, clocks, edges, group, check,
+  flavor), then an inverted-index through-pin Jaccard fallback (≥ 0.5, same
+  check) for renamed/ECO-touched paths; honest exact/fuzzy/combined rates
+- **Attribute** — sign-aware over 11 components (cell/net per stage +
+  launch/capture clock, edge, uncertainty, CRPR, check margin, external
+  delay); derate/SI sub-splits, POCV sigma RSS, per-path confidence;
+  residual always reported
+- **Cluster** — group by dominant component + path group, so thousands of
+  miscorrelated endpoints collapse to a handful of root causes
+- **Gate** — `--fail-on-regression-ps N` exits 2 for CI (matched
+  regressions + added-path violations); `--format json` for machines
 
 Rust core, hand-rolled parser (no regex), `unsafe` forbidden. Apache-2.0.
 No telemetry. No network. Air-gap friendly.
@@ -46,25 +50,27 @@ up on long `u_core` routes, a capture-clock latency shift on one IO path, one
 added path.
 
 ```sh
-cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --corner sky130hd
+cargo run -q -p otps-cli -- diff fixtures/base.rpt fixtures/route.rpt --base-pdk sky130hd
 ```
 
 ```
-otps diff (schema 0.1.0)
+otps diff (schema 0.2.0)
 base: 6 paths  new: 7 paths  matched: 6 (unmatched base 0, new 1)
 match rate: 85.7%
+exact: 6  fuzzy: 0  combined rate: 85.7% (renamed/ECO-touched paths stay visible)
 worst slack delta: -0.102 ns
 worst residual: 0.000000 ns
+unmatched-new WNS: +0.300 ns
 top regressions:
   -0.102 ns  NetDelay  u_core/ff1 -> u_core/ff2  (explained 100%)
-  -0.050 ns  Required  u_io/pad1 -> u_core/ff6  (explained 100%)
+  -0.050 ns  CaptureClock  u_io/pad1 -> u_core/ff6  (explained 100%)
 clusters:
-  NetDelay x3 [u_core]: total -0.202 ns
-  Required x1 [u_core]: total -0.050 ns
+  NetDelay x4 [clk]: total -0.217 ns
+  CaptureClock x1 [clk]: total -0.050 ns
 ```
 
 Read it as: routing parasitics explain the `u_core` regressions; the IO path
-moved on the *required* (clock) side, not the data path; one path is new and
+moved on the capture-clock side, not the data path; one path is new and
 counted, not hidden; 85.7% matched with zero residual.
 
 ## What it is NOT
