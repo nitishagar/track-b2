@@ -934,7 +934,7 @@ mod tests {
     #[test]
     fn empty_checks_parses_empty() {
         let report = parse_doc("");
-        assert!(report.paths.is_empty());
+        assert_eq!(report.paths, Vec::new());
         assert_eq!(report.skipped_paths, 0);
     }
 

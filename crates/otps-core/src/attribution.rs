@@ -883,7 +883,7 @@ mod tests {
         assert!((attr.explained_ratio - 1.0).abs() < 1e-12);
         assert_eq!(attr.dominant, Component::Balanced);
         assert_eq!(attr.confidence, Confidence::High);
-        assert!(attr.unknowns.is_empty());
+        assert_eq!(attr.unknowns, Vec::<String>::new());
     }
 
     #[test]

@@ -1374,7 +1374,7 @@ mod tests {
             Path Type: max\n\
             (Path is unconstrained)\n";
         let report = parse(block);
-        assert!(report.paths.is_empty());
+        assert_eq!(report.paths, Vec::new());
         assert_eq!(report.skipped_paths, 1);
     }
 
