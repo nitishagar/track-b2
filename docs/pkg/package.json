@@ -1,0 +1,21 @@
+{
+  "name": "otps-wasm",
+  "type": "module",
+  "description": "otps: timing-correlation diff engine, WebAssembly boundary (offline demo page)",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nitishagar/track-b2"
+  },
+  "files": [
+    "otps_wasm_bg.wasm",
+    "otps_wasm.js",
+    "otps_wasm.d.ts"
+  ],
+  "main": "otps_wasm.js",
+  "types": "otps_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

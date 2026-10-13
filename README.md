@@ -26,6 +26,10 @@ clusters:
 
 No telemetry. No network. Apache-2.0.
 
+Live demo: [`docs/demo.html`](docs/demo.html) runs the real engine as
+WebAssembly entirely in your browser — after the page loads it makes zero
+network requests.
+
 **What it is NOT:** a signoff tool. It is signoff-adjacent triage: every report
 prints its match rate and unexplained residual, and a large residual means
 "uncertain", never "clean".

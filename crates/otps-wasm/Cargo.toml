@@ -1,0 +1,27 @@
+[package]
+name = "otps-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "otps: timing-correlation diff engine, WebAssembly boundary (offline demo page)"
+# NOTE: no `rust-version.workspace` — wasm-bindgen tracks newer rustc than the
+# workspace MSRV (1.85). The `msrv` CI job builds/tests only otps-core+otps-cli.
+# wasm-bindgen pinned to the version wasm-pack 0.13.1 built cleanly with
+# (Cargo.lock: wasm-bindgen 0.2.129, wasm-bindgen-test 0.3.79).
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+otps-core = { path = "../otps-core" }
+wasm-bindgen = "=0.2.129"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+console_error_panic_hook = "0.1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[lints]
+workspace = true

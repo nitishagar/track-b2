@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0d1116">
+<title>otps — Live Demo (runs offline in your browser)</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' rx='3' fill='%230d1116'/><rect x='3' y='3' width='10' height='10' rx='1' fill='none' stroke='%23e1b06e' stroke-width='2'/></svg>">
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<header class="site">
+  <a class="brand" href="index.html">otps — Timing-Correlation Diff Engine</a>
+  <nav class="site">
+    <a href="index.html">Home</a>
+    <a href="format.html">Format</a>
+    <a href="architecture.html">Architecture</a>
+    <a href="adopters.html">Adopters</a>
+    <a href="roadmap.html">Roadmap</a>
+    <a href="demo.html" aria-current="page">Demo</a>
+  </nav>
+</header>
+<main>
+<h1>Live demo: diff two timing reports in your browser.</h1>
+<p>The real <code>otps</code> engine, compiled to WebAssembly. Paste two
+reports (OpenSTA <code>report_checks</code> text or native STA JSON), pick
+files from disk, or load the inlined sample pair — the diff runs locally and
+renders the summary, top regressions, clusters, and raw JSON.</p>
+
+<div class="notice"><strong>Offline:</strong> after this page loads, Diff makes
+zero network requests — your reports never leave the machine. One serving
+note: browsers block ES module imports on <code>file://</code>, so serve this
+page over http (e.g. <code>python3 -m http.server</code> in
+<code>docs/</code>) or use the Pages URL.</div>
+
+<p class="demo-status" id="demo-status">Loading WASM engine…</p>
+
+<div class="demo-panels">
+  <section class="demo-panel">
+    <h2>Base report</h2>
+    <textarea id="demo-base" spellcheck="false" placeholder="Paste base report text here, or pick a file below."></textarea>
+    <div class="demo-file-row">
+      <label for="demo-base-file">File:</label>
+      <input type="file" id="demo-base-file">
+    </div>
+    <fieldset class="demo-run">
+      <legend>base run identity (optional)</legend>
+      <label>corner <input type="text" id="demo-base-corner" placeholder="unknown"></label>
+      <label>mode <input type="text" id="demo-base-mode" placeholder="unknown"></label>
+      <label>pdk <input type="text" id="demo-base-pdk" placeholder="unknown"></label>
+    </fieldset>
+  </section>
+  <section class="demo-panel">
+    <h2>New report</h2>
+    <textarea id="demo-new" spellcheck="false" placeholder="Paste new report text here, or pick a file below."></textarea>
+    <div class="demo-file-row">
+      <label for="demo-new-file">File:</label>
+      <input type="file" id="demo-new-file">
+    </div>
+    <fieldset class="demo-run">
+      <legend>new run identity (optional)</legend>
+      <label>corner <input type="text" id="demo-new-corner" placeholder="unknown"></label>
+      <label>mode <input type="text" id="demo-new-mode" placeholder="unknown"></label>
+      <label>pdk <input type="text" id="demo-new-pdk" placeholder="unknown"></label>
+    </fieldset>
+  </section>
+</div>
+
+<div class="demo-actions">
+  <button type="button" id="demo-diff" disabled>Diff</button>
+  <button type="button" class="secondary" id="demo-sample" disabled>Try sample pair</button>
+  <span class="demo-schema" id="demo-schema"></span>
+</div>
+
+<div class="demo-error" id="demo-error" hidden></div>
+<div class="demo-warn" id="demo-warn" hidden></div>
+
+<div class="demo-results" id="demo-results" hidden>
+  <h2>Summary</h2>
+  <pre class="demo-summary" id="demo-summary"></pre>
+  <h2>Top regressions</h2>
+  <div class="demo-regressions" id="demo-regressions"></div>
+  <h2>Clusters</h2>
+  <div class="demo-clusters" id="demo-clusters"></div>
+  <details>
+    <summary>Raw JSON</summary>
+    <pre class="demo-raw" id="demo-raw"></pre>
+  </details>
+</div>
+</main>
+<footer class="site">
+  otps docs — Apache-2.0 — offline static site, no external dependencies.
+</footer>
+<script type="module" src="demo.js"></script>
+</body>
+</html>

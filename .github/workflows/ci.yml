@@ -21,5 +21,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.85
-      - run: cargo build --locked
-      - run: cargo test --locked
+      # otps-wasm excluded: wasm-bindgen tracks newer rustc than MSRV 1.85.
+      - run: cargo build --locked -p otps-core -p otps-cli
+      - run: cargo test --locked -p otps-core -p otps-cli
+  wasm-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      # Pinned wasm-pack from the official release tarball (the installer
+      # script tracks latest, which would make this guard non-reproducible).
+      - name: Install wasm-pack 0.13.1
+        run: |
+          curl -sSL -o /tmp/wasm-pack.tar.gz https://github.com/rustwasm/wasm-pack/releases/download/v0.13.1/wasm-pack-v0.13.1-x86_64-unknown-linux-musl.tar.gz
+          tar xzf /tmp/wasm-pack.tar.gz -C /tmp
+          echo /tmp/wasm-pack-v0.13.1-x86_64-unknown-linux-musl >> "$GITHUB_PATH"
+      - run: wasm-pack --version
+      - run: wasm-pack build crates/otps-wasm --target web --out-dir ../../docs/pkg
+      # wasm-pack regenerates docs/pkg/.gitignore (`*`); it is deliberately
+      # NOT committed (it would hide the artifacts), so drop it before diffing.
+      - run: rm -f docs/pkg/.gitignore
+      - run: git diff --exit-code docs/pkg/
+      - run: test -z "$(git status --porcelain docs/pkg/)"

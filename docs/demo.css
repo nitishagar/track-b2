@@ -1,0 +1,200 @@
+/* otps demo page — scoped rules only (.demo-*). Linked from demo.html alone;
+ * the shared style.css shell is untouched. Reuses its tokens. */
+.demo-status {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.demo-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 50rem) {
+  .demo-panels { grid-template-columns: 1fr; }
+}
+
+.demo-panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 0.9rem 1rem 1rem;
+}
+
+.demo-panel h2 {
+  margin: 0 0 0.6rem;
+  padding: 0;
+  border: 0;
+  font-size: 1rem;
+}
+
+.demo-panel h2::before {
+  content: "";
+}
+
+.demo-panel textarea {
+  width: 100%;
+  min-height: 12rem;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+}
+
+.demo-file-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.demo-file-row input[type="file"] {
+  font: inherit;
+  color: var(--text);
+  max-width: 100%;
+}
+
+.demo-run {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+  padding: 0.6rem 0.7rem 0.7rem;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+}
+
+.demo-run legend {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 0 0.4rem;
+}
+
+.demo-run label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.demo-run input[type="text"] {
+  width: 100%;
+  margin-top: 0.15rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  color: var(--text);
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 1.1rem 0 0;
+}
+
+.demo-actions button {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--bg-deep);
+  background: var(--amber);
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  padding: 0.35rem 1.2rem;
+  cursor: pointer;
+}
+
+.demo-actions button.secondary {
+  font-weight: 400;
+  color: var(--muted);
+  background: transparent;
+  border-color: var(--line);
+}
+
+.demo-actions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.demo-actions button:not(:disabled):hover {
+  color: var(--bg-deep);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.demo-schema {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.demo-error {
+  margin-top: 1rem;
+  border: 2px solid var(--terra);
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.demo-warn {
+  margin-top: 1rem;
+  border: 2px dashed var(--amber);
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+}
+
+.demo-results h2 {
+  font-size: 1.15rem;
+}
+
+.demo-summary {
+  font-size: 0.82rem;
+}
+
+.demo-regressions table {
+  font-size: 0.85rem;
+}
+
+.demo-regressions td, .demo-regressions th {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+}
+
+.demo-clusters ul {
+  font-family: var(--sans);
+  font-size: 0.92rem;
+}
+
+.demo-raw {
+  font-size: 0.75rem;
+  max-height: 28rem;
+}
+
+.demo-results details summary {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}

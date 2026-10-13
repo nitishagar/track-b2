@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/otps-core", "crates/otps-cli"]
+members = ["crates/otps-core", "crates/otps-cli", "crates/otps-wasm"]
 
 [workspace.package]
 edition = "2021"
