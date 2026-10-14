@@ -15,8 +15,8 @@
     <a href="format.html">Format</a>
     <a href="architecture.html">Architecture</a>
     <a href="adopters.html">Adopters</a>
-    <a href="roadmap.html" aria-current="page">Roadmap</a>
     <a href="demo.html">Demo</a>
+    <a href="roadmap.html" aria-current="page">Roadmap</a>
   </nav>
 </header>
 <main>
@@ -26,11 +26,13 @@ planned sequence; nothing here changes the core promise — deterministic,
 offline, signoff-adjacent triage. For how the current pipeline works, see
 <a href="architecture.html">architecture</a>.</p>
 
-<h2>WASM demo</h2>
-<p>A static GitHub Pages demo that runs the diff engine entirely in the
-browser: drop two OpenSTA reports and get the clustered root-cause view in
-seconds. Files never leave the browser — the same offline guarantee as the
-CLI, packaged for evaluation without installing Rust.</p>
+<h2>WASM demo — shipped</h2>
+<p><a href="demo.html">Try it in your browser</a>: the diff engine compiled
+to WebAssembly runs entirely on the page — drop two OpenSTA reports (or the
+sample pair) and get the clustered root-cause view in seconds. Files never
+leave the browser — the same offline guarantee as the CLI, packaged for
+evaluation without installing Rust. Output is byte-identical to the CLI's
+<code>--format json</code>, guarded by a CI parity check.</p>
 
 <h2>Exporter scripts</h2>
 <p>User-run, in-tool Tcl exporter scripts for PrimeTime and Tempus: source
